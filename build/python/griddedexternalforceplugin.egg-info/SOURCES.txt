@@ -1,7 +1,0 @@
-GriddedExternalForcePluginWrapper.cpp
-griddedexternalforceplugin.py
-setup.py
-griddedexternalforceplugin.egg-info/PKG-INFO
-griddedexternalforceplugin.egg-info/SOURCES.txt
-griddedexternalforceplugin.egg-info/dependency_links.txt
-griddedexternalforceplugin.egg-info/top_level.txt

@@ -1,6 +1,0 @@
-/home/jchausse/OpenMM/include/GriddedExternalForce.h
-/home/jchausse/OpenMM/include/GriddedExternalForceKernels.h
-/home/jchausse/OpenMM/include/internal/GriddedExternalForceImpl.h
-/home/jchausse/OpenMM/include/internal/windowsExportExample.h
-/home/jchausse/OpenMM/lib/plugins/libGriddedExternalForcePluginReference.so
-/home/jchausse/OpenMM/lib/libGriddedExternalForcePlugin.so
