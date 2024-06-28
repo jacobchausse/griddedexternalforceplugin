@@ -52,7 +52,11 @@ public:
 
     int GriddedExternalForce::addParticle(int particle);
     
-    void GriddedExternalForce::setForceGrids(const std::vector<double>& forcex, const std::vector<double>& forcey, const std::vector<double>& forcez);
+    void GriddedExternalForce::setForcexGrid(const std::vector<double>& forcex);
+
+    void GriddedExternalForce::setForceyGrid(const std::vector<double>& forcey);
+
+    void GriddedExternalForce::setForcezGrid(const std::vector<double>& forcez);
 
     bool GriddedExternalForce::usesGriddedForce() const;
 

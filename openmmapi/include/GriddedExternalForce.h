@@ -47,7 +47,11 @@ public:
 
     void getParameters(int& xsize, int& ysize, int& zsize, double& xmin, double& xmax, double& ymin, double& ymax, double& zmin, double& zmax, double& maxforce) const;
 
-    void setForceGrids(const std::vector<double>& forcex, const std::vector<double>& forcey, const std::vector<double>& forcez);
+    void setForcexGrid(const std::vector<double>& forcex);
+
+    void setForceyGrid(const std::vector<double>& forcey);
+
+    void setForcezGrid(const std::vector<double>& forcez);
 
     void getGridPointers(const std::vector<double>*& ptrpotential, const std::vector<double>*& ptrforcex, const std::vector<double>*& ptrforcey, const std::vector<double>*& ptrforcez) const;
 
@@ -65,7 +69,7 @@ private:
     double xmin, xmax, ymin, ymax, zmin, zmax, maxforce;
     std::vector<double> potential, forcex, forcey, forcez;
     std::vector<int> particles;
-    bool griddedforce;
+    bool griddedforcex, griddedforcey, griddedforcez;
 };
 
 } // namespace OpenMM

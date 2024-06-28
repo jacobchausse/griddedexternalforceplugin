@@ -56,7 +56,9 @@ void GriddedExternalForce::setParameters(int xsize, int ysize, int zsize, const 
     if (zmax <= zmin)
         throw OpenMMException("GriddedExternalForce: zmax <= zmin.");
     
-    this->griddedforce = false;
+    this->griddedforcex = false;
+    this->griddedforcey = false;
+    this->griddedforcez = false;
     this->potential = potential;
     this->xsize = xsize;
     this->ysize = ysize;
@@ -83,17 +85,27 @@ void GriddedExternalForce::getParameters(int& xsize, int& ysize, int& zsize, dou
     maxforce = this->maxforce;
 }
 
-void GriddedExternalForce::setForceGrids(const std::vector<double>& forcex, const std::vector<double>& forcey, const std::vector<double>& forcez) {
+void GriddedExternalForce::setForcexGrid(const std::vector<double>& forcex) {
     if (forcex.size() != xsize*ysize*zsize)
         throw OpenMMException("GriddedExternalForce: incorrect number of values in forcex");
-    if (forcey.size() != xsize*ysize*zsize)
-        throw OpenMMException("GriddedExternalForce: incorrect number of values in forcey");
-    if (forcez.size() != xsize*ysize*zsize)
-        throw OpenMMException("GriddedExternalForce: incorrect number of values in forcez");
     
-    this->griddedforce = true;
+    this->griddedforcex = true;
     this->forcex = forcex;
+}
+
+void GriddedExternalForce::setForceyGrid(const std::vector<double>& forcey) {
+    if (forcex.size() != xsize*ysize*zsize)
+        throw OpenMMException("GriddedExternalForce: incorrect number of values in forcex");
+    
+    this->griddedforcey = true;
     this->forcey = forcey;
+}
+
+void GriddedExternalForce::setForcezGrid(const std::vector<double>& forcez) {
+    if (forcex.size() != xsize*ysize*zsize)
+        throw OpenMMException("GriddedExternalForce: incorrect number of values in forcex");
+    
+    this->griddedforcez = true;
     this->forcez = forcez;
 }
 
@@ -110,7 +122,12 @@ int GriddedExternalForce::addParticle(int particle) {
 }
 
 bool GriddedExternalForce::usesGriddedForce() const {
-    return griddedforce;
+    bool missingforcegrid = (not ((not griddedforcex) && (not griddedforcey) && (not griddedforcez)))
+                        and (not ((    griddedforcex) && (    griddedforcey) && (    griddedforcez)));
+
+    if (missingforcegrid) throw OpenMMException("Not all force grids were set!");
+
+    return griddedforcex && griddedforcey && griddedforcez;
 }
 
 void GriddedExternalForce::getParticles(vector<int>& particles) const {
