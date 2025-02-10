@@ -43,6 +43,8 @@ class OPENMM_EXPORT_EXAMPLE GriddedExternalForce : public OpenMM::Force {
 public:
     GriddedExternalForce(int xsize, int ysize, int zsize, const std::vector<double>& potential, double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double maxforce);
 
+    GriddedExternalForce(std::string filepath, std::string name, double maxforce, bool verbose=false);
+
     void setParameters(int xsize, int ysize, int zsize, const std::vector<double>& potential, double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double maxforce);
 
     void getParameters(int& xsize, int& ysize, int& zsize, double& xmin, double& xmax, double& ymin, double& ymax, double& zmin, double& zmax, double& maxforce) const;
