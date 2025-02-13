@@ -41,6 +41,21 @@ namespace GriddedExternalForcePlugin {
 
 class OPENMM_EXPORT_EXAMPLE GriddedExternalForce : public OpenMM::Force {
 public:
+    /**
+     * Create a gridded external force.
+     * 
+     * @param xsize     Shape of the grid in the x direction.
+     * @param ysize     Shape of the grid in the y direction.
+     * @param zsize     Shape of the grid in the z direction.
+     * @param potential Flattened grid for the potential energy (kJ/mol).
+     * @param xmin      Lower limit position of the grid in x (nm).
+     * @param xmax      Upper limit position of the grid in x (nm).
+     * @param ymin      Lower limit position of the grid in y (nm).
+     * @param ymax      Upper limit position of the grid in y (nm).
+     * @param zmin      Lower limit position of the grid in z (nm).
+     * @param zmax      Upper limit position of the grid in z (nm).
+     * @param maxforce  Force cutoff, useful to prevent force blow up in interpolation (kJ/mol/nm).
+     */
     GriddedExternalForce(int xsize, int ysize, int zsize, const std::vector<double>& potential, double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double maxforce);
 
     GriddedExternalForce(std::string filepath, std::string name, double maxforce, bool verbose=false);

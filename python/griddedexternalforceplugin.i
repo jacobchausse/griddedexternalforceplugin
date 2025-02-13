@@ -41,8 +41,124 @@ import openmm.unit as unit
     }
 }
 
-
 namespace GriddedExternalForcePlugin {
+
+%feature("autodoc", "0");
+
+%feature("docstring") GriddedExternalForce::GriddedExternalForce "Create a gridded external force. Two constructors are available: 
+1) Passing arrays and values.
+2) Passing the grid set file (.grd) path.
+
+Parameters (1)
+----------
+xsize : int
+    Shape of the grid in x.
+ysize : int
+    Shape of the grid in y.
+zsize : int
+    Shape of the grid in z.
+V : np.ndarray
+    Flattened grid for the potential energy (kJ/mol).
+xmin : float
+    Lower limit position of the grid in x (nm).
+xmax : float
+    Upper limit position of the grid in x (nm).
+ymin : float
+    Lower limit position of the grid in y (nm).
+ymax : float
+    Upper limit position of the grid in y (nm).
+zmin : float
+    Lower limit position of the grid in z (nm).
+zmax : float
+    Upper limit position of the grid in z (nm).
+maxforce : float
+    Force cutoff, useful to prevent force blow up in interpolation (kJ/mol/nm).
+
+Parameters (2)
+----------
+filepath : str
+    Path to the grid set file.
+name : str
+    Name of the grid set to use from the file.
+maxforce : float
+    Force cutoff, useful to prevent force blow up in interpolation (kJ/mol/nm).
+verbose : bool
+    If True, print useful information about the loaded grid set.
+
+Returns
+-------
+GriddedExternalForce
+    The created GriddedExternalForce object.
+";
+
+%feature("docstring") GriddedExternalForce::setParameters "Set parameters of the gridded external force (force grids are set separately).
+
+Parameters
+----------
+xsize : int
+    Shape of the grid in x.
+ysize : int
+    Shape of the grid in y.
+zsize : int
+    Shape of the grid in z.
+V : np.ndarray
+    Flattened grid for the potential energy (kJ/mol).
+xmin : float
+    Lower limit position of the grid in x (nm).
+xmax : float
+    Upper limit position of the grid in x (nm).
+ymin : float
+    Lower limit position of the grid in y (nm).
+ymax : float
+    Upper limit position of the grid in y (nm).
+zmin : float
+    Lower limit position of the grid in z (nm).
+zmax : float
+    Upper limit position of the grid in z (nm).
+maxforce : float
+    Force cutoff, useful to prevent force blow up in interpolation (kJ/mol/nm).";
+
+%feature("docstring") GriddedExternalForce::addParticle "Add a particle to apply the external force to.
+
+Parameters
+----------
+particle : int
+    Index of the particle to apply the external force to.";
+
+%feature("docstring") GriddedExternalForce::setForcexGrid "Set the force grid in the x direction.
+
+Parameters
+----------
+forcex : np.ndarray
+    Flattened grid for the force in x (kJ/mol/nm).";
+
+%feature("docstring") GriddedExternalForce::setForcexGrid "Set the force grid in the x direction.
+
+Parameters
+----------
+forcex : np.ndarray
+    Flattened grid for the force in x (kJ/mol/nm).";
+
+%feature("docstring") GriddedExternalForce::setForceyGrid "Set the force grid in the y direction.
+
+Parameters
+----------
+forcey : np.ndarray
+    Flattened grid for the force in y (kJ/mol/nm).";
+
+%feature("docstring") GriddedExternalForce::setForcezGrid "Set the force grid in the z direction.
+
+Parameters
+----------
+forcez : np.ndarray
+    Flattened grid for the force in z (kJ/mol/nm).";
+
+%feature("docstring") GriddedExternalForce::usesGriddedForce "Whether force grids are being used/have been set.
+
+Returns
+----------
+bool
+    If True, uses force grids to determine the force. Otherwise, the force is calculated from numerical differentiation of the potential energy grids.";
 
 class GriddedExternalForce : public OpenMM::Force {
 public:
@@ -190,7 +306,7 @@ class PotentialGridSetsFile:
         if (Fx is None) and (Fx is None) and (Fx is None):
             use_F_grids = False
 
-        if (Fx.shape != shape) and (Fy.shape != shape) and (Fz.shape != shape):
+        if use_F_grids and (Fx.shape != shape) and (Fy.shape != shape) and (Fz.shape != shape):
             raise Exception('Force grid shapes must match.')
         
         self._ngridsets += 1
