@@ -246,10 +246,6 @@ class PotentialGridSetsFile:
     def add_grid_set(self, 
         name: str,
         float_type: Union[np.float16, np.float32, np.float64],
-        V: np.ndarray,
-        Fx: Optional[np.ndarray],
-        Fy: Optional[np.ndarray],
-        Fz: Optional[np.ndarray],
         Nx: int,
         Ny: int,
         Nz: int,
@@ -258,7 +254,11 @@ class PotentialGridSetsFile:
         ymin: float,
         ymax: float,
         zmin: float,
-        zmax: float
+        zmax: float,
+        V: np.ndarray,
+        Fx: Optional[np.ndarray]=None,
+        Fy: Optional[np.ndarray]=None,
+        Fz: Optional[np.ndarray]=None,
     ):
         """Add a grid set to the object.
 
@@ -268,14 +268,6 @@ class PotentialGridSetsFile:
             Name of the grid set. Needed to pick a grid set when loading in OpenMM.
         float_type : Union[np.float16, np.float32, np.float64]
             Float type to save the grid data in.
-        V : np.ndarray
-            Flattened grid for the potential energy (kJ/mol).
-        Fx : Optional[np.ndarray]
-            Flattened grid for the force in x (kJ/mol/nm).
-        Fy : Optional[np.ndarray]
-            Flattened grid for the force in y (kJ/mol/nm).
-        Fz : Optional[np.ndarray]
-            Flattened grid for the force in z (kJ/mol/nm).
         Nx : int
             Shape of the grid in x.
         Ny : int
@@ -294,6 +286,14 @@ class PotentialGridSetsFile:
             Lower limit position of the grid in z (nm).
         zmax : float
             Upper limit position of the grid in z (nm).
+        V : np.ndarray
+            Flattened grid for the potential energy (kJ/mol).
+        Fx : Optional[np.ndarray]
+            Flattened grid for the force in x (kJ/mol/nm).
+        Fy : Optional[np.ndarray]
+            Flattened grid for the force in y (kJ/mol/nm).
+        Fz : Optional[np.ndarray]
+            Flattened grid for the force in z (kJ/mol/nm).
         """
         if float_type not in self._types_to_number.keys():
             raise Exception('Passed an incorrect type.')
