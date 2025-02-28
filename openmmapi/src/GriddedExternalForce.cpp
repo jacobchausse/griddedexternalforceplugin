@@ -79,7 +79,6 @@ GriddedExternalForce::GriddedExternalForce(std::string filepath, std::string nam
 
     bool matchedName = false;
     bool usesForceGrids;
-    int typeNumber, Nx, Ny, Nz, position;
     uint8_t typeNumber_uint8, gridSetNumber_uint8;
     uint32_t Nx_uint32, Ny_uint32, Nz_uint32, nameLength_uint32;
     uint64_t position_uint64;
@@ -120,19 +119,14 @@ GriddedExternalForce::GriddedExternalForce(std::string filepath, std::string nam
         
         //read type number
         file.read(reinterpret_cast<char *>(&typeNumber_uint8), sizeof(typeNumber_uint8));
-        typeNumber = typeNumber_uint8;
 
         //read Nx, Ny, Nz
         file.read(reinterpret_cast<char *>(&Nx_uint32), sizeof(Nx_uint32));
         file.read(reinterpret_cast<char *>(&Ny_uint32), sizeof(Ny_uint32));
         file.read(reinterpret_cast<char *>(&Nz_uint32), sizeof(Nz_uint32));
-        Nx = Nx_uint32;
-        Ny = Ny_uint32;
-        Nz = Nz_uint32;
 
         //read grid data position
         file.read(reinterpret_cast<char *>(&position_uint64), sizeof(position_uint64));
-        position = position_uint64;
     }
 
     if (!matchedName) {
@@ -140,10 +134,10 @@ GriddedExternalForce::GriddedExternalForce(std::string filepath, std::string nam
     }
 
     //seek to position of desired grid
-    file.seekg(position, std::ios::beg);
+    file.seekg(position_uint64, std::ios::beg);
     
     //only doubles are currently supported
-    if (typeNumber == 2) {
+    if (typeNumber_uint8 == 2) {
 
         //read x,y,z limits
         double xmin1, xmax1, ymin1, ymax1, zmin1, zmax1;
@@ -155,7 +149,7 @@ GriddedExternalForce::GriddedExternalForce(std::string filepath, std::string nam
         file.read(reinterpret_cast<char *>(&zmin1), sizeof(zmin1));
         file.read(reinterpret_cast<char *>(&zmax1), sizeof(zmax1));
 
-        int gridSize = Nx*Ny*Nz;
+        int gridSize = Nx_uint32*Ny_uint32*Nz_uint32;
 
         //read V data
         std::vector<double> V_in;
@@ -168,9 +162,24 @@ GriddedExternalForce::GriddedExternalForce(std::string filepath, std::string nam
             std::copy(V_in_char, V_in_char + sizeof(double), reinterpret_cast<char*>(&V_in[j]));
             
         }     
-        
+
+        if (verbose) {
+            double dx = (xmax1 - xmin1) / (Nx_uint32-1);
+            double dy = (ymax1 - ymin1) / (Ny_uint32-1);
+            double dz = (zmax1 - zmin1) / (Nz_uint32-1);
+    
+            std::cout << std::endl << "Loaded Grid Set \"" << name << "\"" << std::endl
+            << "Shape: (" << Nx_uint32 << ", " << Ny_uint32 << ", " << Nz_uint32 << ")" << std::endl
+            << "x Limits (nm): [" << xmin1 << ", " << xmax1 << "]" << ", dx=" << dx << std::endl
+            << "y Limits (nm): [" << ymin1 << ", " << ymax1 << "]" << ", dy=" << dy <<std::endl 
+            << "z Limits (nm): [" << zmin1 << ", " << zmax1 << "]" << ", dz=" << dz <<std::endl;
+            
+            if (usesForceGrids) std::cout << "Force grids: ON" << std::endl;
+            else std::cout << "Force grids: OFF" << std::endl;
+        }
+
         //set parameters in object
-        setParameters(Nx, Ny, Nz, V_in, xmin1, xmax1, ymin1, ymax1, zmin1, zmax1, maxforce);  
+        setParameters((int)Nx_uint32, (int)Ny_uint32, (int)Nz_uint32, V_in, xmin1, xmax1, ymin1, ymax1, zmin1, zmax1, maxforce);  
 
         if (usesForceGrids) {
             
@@ -214,21 +223,6 @@ GriddedExternalForce::GriddedExternalForce(std::string filepath, std::string nam
     }
     else {
         throw OpenMMException("Only doubles (float64) are currently supported.");
-    }
-
-    if (verbose) {
-        double dx = (xmax - xmin) / (Nx-1);
-        double dy = (ymax - ymin) / (Ny-1);
-        double dz = (zmax - zmin) / (Nz-1);
-
-        std::cout << std::endl << "Loaded Grid Set \"" << name << "\"" << std::endl
-        << "Shape: (" << Nx << ", " << Ny << ", " << Nz << ")" << std::endl
-        << "x Limits (nm): [" << xmin << ", " << xmax << "]" << ", dx=" << dx << std::endl
-        << "y Limits (nm): [" << ymin << ", " << ymax << "]" << ", dy=" << dy <<std::endl 
-        << "z Limits (nm): [" << zmin << ", " << zmax << "]" << ", dz=" << dz <<std::endl;
-        
-        if (usesForceGrids) std::cout << "Force grids: ON" << std::endl;
-        else std::cout << "Force grids: OFF" << std::endl;
     }
 }
 
