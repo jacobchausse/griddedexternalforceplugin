@@ -35,13 +35,195 @@
 #include "openmm/internal/AssertionUtilities.h"
 #include "openmm/OpenMMException.h"
 #include <vector>
+#include <iostream>
+#include <fstream>
 
 using namespace GriddedExternalForcePlugin;
 using namespace OpenMM;
 using namespace std;
 
+const int GRDFILEVERSION = 1;
+
 GriddedExternalForce::GriddedExternalForce(int xsize, int ysize, int zsize, const vector<double>& potential, double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double maxforce) {
     setParameters(xsize, ysize, zsize, potential, xmin, xmax, ymin, ymax, zmin, zmax, maxforce);
+}
+
+GriddedExternalForce::GriddedExternalForce(std::string filepath, std::string name, double maxforce, bool verbose) {
+    //open file
+    std::ifstream file(filepath, std::ios::binary);
+	
+    //make sure file exists
+    if (!file) {
+		throw OpenMMException("Unable to open " + filepath + ".");
+	}
+
+    //read endianness
+    uint8_t endianNumber;
+    file.read(reinterpret_cast<char *>(&endianNumber), sizeof(endianNumber));
+
+    int number = endianNumber;
+
+    //read version number
+    uint8_t versionNumber;
+    file.read(reinterpret_cast<char *>(&versionNumber), sizeof(versionNumber));
+
+    if (versionNumber != GRDFILEVERSION){
+        throw OpenMMException("Incorrect grid file version.");
+    }
+    
+    //read the number of grid sets
+    uint8_t nGridSets_uint8;
+    file.read(reinterpret_cast<char *>(&nGridSets_uint8), sizeof(nGridSets_uint8));  
+
+    int nGridSets = nGridSets_uint8;
+
+    bool matchedName = false;
+    bool usesForceGrids;
+    uint8_t typeNumber_uint8, gridSetNumber_uint8;
+    uint32_t Nx_uint32, Ny_uint32, Nz_uint32, nameLength_uint32;
+    uint64_t position_uint64;
+    
+
+    for (int index = 0; index < nGridSets; index++) {
+        
+        //read the grid set number
+        file.read(reinterpret_cast<char *>(&gridSetNumber_uint8), sizeof(gridSetNumber_uint8));
+        int gridSetNumber = gridSetNumber_uint8;
+
+        if (gridSetNumber != index) {
+            throw OpenMMException("Unmatched grid set number.");
+        }
+        
+        //read the name length
+        file.read(reinterpret_cast<char *>(&nameLength_uint32), sizeof(nameLength_uint32));
+        int nameLength = nameLength_uint32;
+
+        //read the grid set name
+        std::vector<char> gridSetName_char;
+        gridSetName_char.resize(nameLength);
+
+        file.read(&gridSetName_char[0], nameLength);
+
+        std::string gridSetName(gridSetName_char.begin(), gridSetName_char.end());
+
+        //if grid name doesnt match the one we want, skip to the next grid set header
+        if (gridSetName != name) {
+            file.seekg(2 + 12 + 8, std::ios::cur);
+            continue;
+        }
+
+        matchedName = true;
+
+        //read uses force grids
+        file.read(reinterpret_cast<char *>(&usesForceGrids), 1);
+        
+        //read type number
+        file.read(reinterpret_cast<char *>(&typeNumber_uint8), sizeof(typeNumber_uint8));
+
+        //read Nx, Ny, Nz
+        file.read(reinterpret_cast<char *>(&Nx_uint32), sizeof(Nx_uint32));
+        file.read(reinterpret_cast<char *>(&Ny_uint32), sizeof(Ny_uint32));
+        file.read(reinterpret_cast<char *>(&Nz_uint32), sizeof(Nz_uint32));
+
+        //read grid data position
+        file.read(reinterpret_cast<char *>(&position_uint64), sizeof(position_uint64));
+    }
+
+    if (!matchedName) {
+        throw OpenMMException("Did not find \"" + name + "\" in the grid sets");
+    }
+
+    //seek to position of desired grid
+    file.seekg(position_uint64, std::ios::beg);
+    
+    //only doubles are currently supported
+    if (typeNumber_uint8 == 2) {
+
+        //read x,y,z limits
+        double xmin1, xmax1, ymin1, ymax1, zmin1, zmax1;
+        
+        file.read(reinterpret_cast<char *>(&xmin1), sizeof(xmin1));
+        file.read(reinterpret_cast<char *>(&xmax1), sizeof(xmax1));
+        file.read(reinterpret_cast<char *>(&ymin1), sizeof(ymin1));
+        file.read(reinterpret_cast<char *>(&ymax1), sizeof(ymax1));
+        file.read(reinterpret_cast<char *>(&zmin1), sizeof(zmin1));
+        file.read(reinterpret_cast<char *>(&zmax1), sizeof(zmax1));
+
+        int gridSize = Nx_uint32*Ny_uint32*Nz_uint32;
+
+        //read V data
+        std::vector<double> V_in;
+        V_in.resize(gridSize);
+
+        char V_in_char[sizeof(double)];
+
+        for (int j = 0; j < gridSize; j++) {
+            file.read(&V_in_char[0], sizeof(double));
+            std::copy(V_in_char, V_in_char + sizeof(double), reinterpret_cast<char*>(&V_in[j]));
+            
+        }     
+
+        if (verbose) {
+            double dx = (xmax1 - xmin1) / (Nx_uint32-1);
+            double dy = (ymax1 - ymin1) / (Ny_uint32-1);
+            double dz = (zmax1 - zmin1) / (Nz_uint32-1);
+    
+            std::cout << std::endl << "Loaded Grid Set \"" << name << "\"" << std::endl
+            << "Shape: (" << Nx_uint32 << ", " << Ny_uint32 << ", " << Nz_uint32 << ")" << std::endl
+            << "x Limits (nm): [" << xmin1 << ", " << xmax1 << "]" << ", dx=" << dx << std::endl
+            << "y Limits (nm): [" << ymin1 << ", " << ymax1 << "]" << ", dy=" << dy <<std::endl 
+            << "z Limits (nm): [" << zmin1 << ", " << zmax1 << "]" << ", dz=" << dz <<std::endl;
+            
+            if (usesForceGrids) std::cout << "Force grids: ON" << std::endl;
+            else std::cout << "Force grids: OFF" << std::endl;
+        }
+
+        //set parameters in object
+        setParameters((int)Nx_uint32, (int)Ny_uint32, (int)Nz_uint32, V_in, xmin1, xmax1, ymin1, ymax1, zmin1, zmax1, maxforce);  
+
+        if (usesForceGrids) {
+            
+            char F_in_char[sizeof(double)];
+
+            //read Fx data
+            std::vector<double> Fx_in;
+            Fx_in.resize(gridSize);
+
+            for (int j = 0; j < gridSize; j++) {
+                file.read(&F_in_char[0], sizeof(double));
+                std::copy(F_in_char, F_in_char + sizeof(double), reinterpret_cast<char*>(&Fx_in[j]));
+                
+            }
+            
+            //read Fy data
+            std::vector<double> Fy_in;
+            Fy_in.resize(gridSize);
+
+            for (int j = 0; j < gridSize; j++) {
+                file.read(&F_in_char[0], sizeof(double));
+                std::copy(F_in_char, F_in_char + sizeof(double), reinterpret_cast<char*>(&Fy_in[j]));
+                
+            }
+            
+            //read Fz data
+            std::vector<double> Fz_in;
+            Fz_in.resize(gridSize);
+
+            for (int j = 0; j < gridSize; j++) {
+                file.read(&F_in_char[0], sizeof(double));
+                std::copy(F_in_char, F_in_char + sizeof(double), reinterpret_cast<char*>(&Fz_in[j]));
+                
+            } 
+
+            //set force grids in object
+            setForcexGrid(Fx_in);
+            setForceyGrid(Fy_in);
+            setForcezGrid(Fz_in);
+        }
+    }
+    else {
+        throw OpenMMException("Only doubles (float64) are currently supported.");
+    }
 }
 
 void GriddedExternalForce::setParameters(int xsize, int ysize, int zsize, const vector<double>& potential, double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double maxforce) {
