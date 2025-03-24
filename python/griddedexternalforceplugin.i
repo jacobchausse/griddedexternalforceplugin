@@ -160,6 +160,14 @@ Returns
 bool
     If True, uses force grids to determine the force. Otherwise, the force is calculated from numerical differentiation of the potential energy grids.";
 
+%feature("docstring") GriddedExternalForce::getParameters "Get parameters of the force.
+
+Returns
+----------
+Tuple
+    xsize, ysize, zsize, xmin, xmax, ymin, ymax, zmin, zmax, maxforce";
+
+
 class GriddedExternalForce : public OpenMM::Force {
 public:
     GriddedExternalForce(int xsize, int ysize, int zsize, const std::vector<double>& potential, double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double maxforce);
@@ -185,6 +193,28 @@ public:
     %apply std::vector<int>& OUTPUT {std::vector<int>& particles};
     void GriddedExternalForce::getParticles(std::vector<int>& particles);
     %clear std::vector<int>& particles;    
+    
+    %apply int& OUTPUT {int& xsize};
+    %apply int& OUTPUT {int& ysize};
+    %apply int& OUTPUT {int& zsize};
+    %apply double& OUTPUT {double& xmin};
+    %apply double& OUTPUT {double& xmax};
+    %apply double& OUTPUT {double& ymin};
+    %apply double& OUTPUT {double& ymax};
+    %apply double& OUTPUT {double& zmin};
+    %apply double& OUTPUT {double& zmax};
+    %apply double& OUTPUT {double& maxforce};
+    void GriddedExternalForce::getParameters(int& xsize, int& ysize, int& zsize, double& xmin, double& xmax, double& ymin, double& ymax, double& zmin, double& zmax, double& maxforce) const;
+    %clear int& xsize;
+    %clear int& ysize;
+    %clear int& zsize;
+    %clear double& xmin;
+    %clear double& xmax;
+    %clear double& ymin;
+    %clear double& ymax;
+    %clear double& zmin;
+    %clear double& zmax;
+    %clear double& maxforce;
 
     /*
      * Add methods for casting a Force to an GriddedExternalForce.
