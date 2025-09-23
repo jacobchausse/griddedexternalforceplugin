@@ -72,13 +72,14 @@ private:
     void taylorInterpolation(const vector<double>& data, int i, int j, int k, double ic0, double jc0, double kc0, double& w);
 
     int xsize, ysize, zsize;
-    double xmin, xmax, ymin, ymax, zmin, zmax, dx, dy, dz, maxforce;
+    double xmin, xmax, ymin, ymax, zmin, zmax, dx, dy, dz, xlen, ylen, zlen, maxforce;
     const vector<double>* ptrpotential;
     const vector<double>* ptrforcex;
     const vector<double>* ptrforcey;
     const vector<double>* ptrforcez;
     vector<int> particles;
     bool griddedforce;
+    bool periodicx, periodicy, periodicz;
 };
 
 #endif /*REFERENCE_EXAMPLE_KERNELS_H_*/

@@ -70,6 +70,14 @@ public:
 
     void setForcezGrid(const std::vector<double>& forcez);
 
+    void setPeriodicX(const bool value);
+
+    void setPeriodicY(const bool value);
+
+    void setPeriodicZ(const bool value);
+
+    void getPeriodicParameters(bool& periodicx, bool& periodicy, bool& periodicz) const;
+
     void getGridPointers(const std::vector<double>*& ptrpotential, const std::vector<double>*& ptrforcex, const std::vector<double>*& ptrforcey, const std::vector<double>*& ptrforcez) const;
 
     int addParticle(int particle);
@@ -87,6 +95,7 @@ private:
     std::vector<double> potential, forcex, forcey, forcez;
     std::vector<int> particles;
     bool griddedforcex, griddedforcey, griddedforcez;
+    bool periodicx, periodicy, periodicz;
 };
 
 } // namespace OpenMM
