@@ -12,7 +12,7 @@ In practice, the GriddedExternalForce can be constructed in two ways:
 
 Values are always interpolated on the grid with a second order Taylor series expansion and first order finite difference derivative approximations (here the function $f$ either represents the potential $V$ or the force $F$):
 
-$
+$`
     f(\vec{r}) = f(\vec{r}_\text{grid}) + \Delta \vec{r}
     \begin{pmatrix}
     f^x\\
@@ -24,7 +24,7 @@ $
     f^{yx} & f^{yy} & f^{yz}\\
     f^{zx} & f^{zy} & f^{zz}\\
     \end{pmatrix}_{r_\text{grid}} \Delta \vec{r}^T 
-$
+`$
 
 Building The Plugin
 ===================

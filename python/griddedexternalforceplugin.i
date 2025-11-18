@@ -264,7 +264,7 @@ public:
 
 %pythoncode %{
 import numpy as np
-from typing import Union, Optional, Literal, Dict
+from typing import Union, Optional, Literal, Dict, Tuple
 
 class PotentialGridSetsFile:
     
@@ -302,6 +302,46 @@ class PotentialGridSetsFile:
         self._ymax_list = []
         self._zmin_list = []
         self._zmax_list = []
+
+    def get_parameters(self, grid_index: int) -> Tuple:
+        """Get parameters of the force grid.
+
+        Returns
+        ----------
+        Tuple
+            xsize, ysize, zsize, xmin, xmax, ymin, ymax, zmin, zmax
+        """
+
+        xsize = self._Nx_list[grid_index]
+        ysize = self._Ny_list[grid_index]
+        zsize = self._Nz_list[grid_index]
+        xmin = self._xmin_list[grid_index]
+        xmax = self._xmax_list[grid_index]
+        ymin = self._ymin_list[grid_index]
+        ymax = self._ymax_list[grid_index]
+        zmin = self._zmin_list[grid_index]
+        zmax = self._zmax_list[grid_index]
+
+        return xsize, ysize, zsize, xmin, xmax, ymin, ymax, zmin, zmax
+
+    def get_potential_grid(self, grid_index: int) -> np.ndarray:
+        """Get potential energy grid.
+
+        Returns
+        ----------
+        np.ndarray
+        """
+        return self._V_list[grid_index] 
+
+    def get_force_grids(self, grid_index: int) -> Tuple[np.ndarray]:
+        """Get force grids.
+
+        Returns
+        ----------
+            Tuple[np.ndarray]
+                Force x, force y, force z.
+        """
+        return self._Fx_list[grid_index], self._Fy_list[grid_index], self._Fz_list[grid_index] 
 
     def add_grid_set(self, 
         name: str,
