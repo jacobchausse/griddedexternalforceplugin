@@ -314,6 +314,18 @@ void GriddedExternalForce::setPeriodicZ(bool value) {
     this->periodicz = value;
 }
 
+bool GriddedExternalForce::getPeriodicX() const {
+    return this->periodicx;
+}
+
+bool GriddedExternalForce::getPeriodicY() const {
+    return this->periodicy;
+}
+
+bool GriddedExternalForce::getPeriodicZ() const {
+    return this->periodicz;
+}
+
 void GriddedExternalForce::getPeriodicParameters(bool& periodicx, bool& periodicy, bool& periodicz) const {
     periodicx = this->periodicx;
     periodicy = this->periodicy;

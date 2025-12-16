@@ -76,6 +76,12 @@ public:
 
     void setPeriodicZ(const bool value);
 
+    bool getPeriodicX() const;
+
+    bool getPeriodicY() const;
+
+    bool getPeriodicZ() const;
+
     void getPeriodicParameters(bool& periodicx, bool& periodicy, bool& periodicz) const;
 
     void getGridPointers(const std::vector<double>*& ptrpotential, const std::vector<double>*& ptrforcex, const std::vector<double>*& ptrforcey, const std::vector<double>*& ptrforcez) const;

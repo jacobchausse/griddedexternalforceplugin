@@ -208,13 +208,19 @@ public:
 
     void GriddedExternalForce::setForcezGrid(const std::vector<double>& forcez);
 
-    void setPeriodicX(bool value);
+    void GriddedExternalForce::setPeriodicX(bool value);
 
-    void setPeriodicY(bool value);
+    void GriddedExternalForce::setPeriodicY(bool value);
 
-    void setPeriodicZ(bool value);
+    void GriddedExternalForce::setPeriodicZ(bool value);
     
     bool GriddedExternalForce::usesGriddedForce() const;
+
+    bool GriddedExternalForce::getPeriodicX() const;
+
+    bool GriddedExternalForce::getPeriodicY() const;
+
+    bool GriddedExternalForce::getPeriodicZ() const;
 
     /*
      * The reference parameters to this function are output values.

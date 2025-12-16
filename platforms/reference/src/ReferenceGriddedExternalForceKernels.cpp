@@ -37,6 +37,7 @@
 #include "openmm/reference/ReferencePlatform.h"
 #include <cmath>
 #include <vector>
+#include <iostream>
 
 using namespace GriddedExternalForcePlugin;
 using namespace OpenMM;
@@ -51,6 +52,13 @@ static vector<Vec3>& extractForces(ContextImpl& context) {
     ReferencePlatform::PlatformData* data = reinterpret_cast<ReferencePlatform::PlatformData*>(context.getPlatformData());
     return *((vector<Vec3>*) data->forces);
 }
+
+
+// C++ modulo is weird, just make our own
+int mod(int k, int n) {
+    return ((k %= n) < 0) ? k+n : k;
+}
+
 
 void ReferenceCalcGriddedExternalForceKernel::initialize(const System& system, const GriddedExternalForce& force) {    
     force.getParameters(xsize, ysize, zsize, xmin, xmax, ymin, ymax, zmin, zmax, maxforce);
@@ -90,13 +98,25 @@ double ReferenceCalcGriddedExternalForceKernel::execute(ContextImpl& context, bo
         jc = (posy - ymin) / dy;
         kc = (posz - zmin) / dz;
 
-        i = ic + 0.5;
-        j = jc + 0.5;
-        k = kc + 0.5;
+        i = round(ic);
+        j = round(jc);
+        k = round(kc);
         
+        // std::cout << posz << ", " << posy << ", " << posz << std::endl;
+
         // ensure index is within the boundary-1
-        if (i < 1 || i > xsize-2 || j < 1 || j > ysize-2 || k < 1 || k > zsize-2)
-            throw OpenMMException("GriddedExternalForce: position out of grid bounds.");
+        if ((i < 1 || i > xsize-2) && !periodicx){
+            std::cout << i << std::endl;
+            throw OpenMMException("GriddedExternalForce: x position out of grid bounds.");
+        }
+        if ((j < 1 || j > ysize-2) && !periodicy){
+            std::cout << j << std::endl;
+            throw OpenMMException("GriddedExternalForce: y position out of grid bounds.");
+        }
+        if ((k < 1 || k > zsize-2) && !periodicz) {
+            std::cout << k << std::endl;
+            throw OpenMMException("GriddedExternalForce: z position out of grid bounds.");
+        }
 
         ic0 = ic-i;
         jc0 = jc-j;
@@ -133,9 +153,9 @@ void ReferenceCalcGriddedExternalForceKernel::taylorInterpolation(const vector<d
     int ip1, im1, jp1, jm1, kp1, km1;
 
     if (periodicx) {
-        ip1 = (i + 1) % (xsize - 1);
-        im1 = (i - 1) % (xsize - 1);
-        i = i % (xsize - 1);
+        ip1 = mod(i + 1, xsize - 1);
+        im1 = mod(i - 1, xsize - 1);
+        i = mod(i, xsize - 1);
     }
     else {  
         ip1 = (i + 1);
@@ -143,9 +163,9 @@ void ReferenceCalcGriddedExternalForceKernel::taylorInterpolation(const vector<d
     }
 
     if (periodicy) {
-        jp1 = (j + 1) % (ysize - 1);
-        jm1 = (j - 1) % (ysize - 1);
-        j = j % (ysize - 1);
+        jp1 = mod(j + 1, ysize - 1);
+        jm1 = mod(j - 1, ysize - 1);
+        j = mod(j, ysize - 1);
     }
     else {  
         jp1 = (j + 1);
@@ -153,9 +173,9 @@ void ReferenceCalcGriddedExternalForceKernel::taylorInterpolation(const vector<d
     }
 
     if (periodicz) {
-        kp1 = (k + 1) % (zsize - 1);
-        km1 = (k - 1) % (zsize - 1);
-        k = k % (zsize - 1);
+        kp1 = mod(k + 1, zsize - 1);
+        km1 = mod(k - 1, zsize - 1);
+        k = mod(k, zsize - 1);
     }
     else {  
         kp1 = (k + 1);
@@ -197,9 +217,9 @@ void ReferenceCalcGriddedExternalForceKernel::taylorInterpolationDerivative(int 
     int ip1, im1, jp1, jm1, kp1, km1;
 
     if (periodicx) {
-        ip1 = (i + 1) % (xsize - 1);
-        im1 = (i - 1) % (xsize - 1);
-        i = i % (xsize - 1);
+        ip1 = mod(i + 1, xsize - 1);
+        im1 = mod(i - 1, xsize - 1);
+        i = mod(i, xsize - 1);
     }
     else {  
         ip1 = (i + 1);
@@ -207,9 +227,9 @@ void ReferenceCalcGriddedExternalForceKernel::taylorInterpolationDerivative(int 
     }
 
     if (periodicy) {
-        jp1 = (j + 1) % (ysize - 1);
-        jm1 = (j - 1) % (ysize - 1);
-        j = j % (ysize - 1);
+        jp1 = mod(j + 1, ysize - 1);
+        jm1 = mod(j - 1, ysize - 1);
+        j = mod(j, ysize - 1);
     }
     else {  
         jp1 = (j + 1);
@@ -217,9 +237,9 @@ void ReferenceCalcGriddedExternalForceKernel::taylorInterpolationDerivative(int 
     }
 
     if (periodicz) {
-        kp1 = (k + 1) % (zsize - 1);
-        km1 = (k - 1) % (zsize - 1);
-        k = k % (zsize - 1);
+        kp1 = mod(k + 1, zsize - 1);
+        km1 = mod(k - 1, zsize - 1);
+        k = mod(k, zsize - 1);
     }
     else {  
         kp1 = (k + 1);
