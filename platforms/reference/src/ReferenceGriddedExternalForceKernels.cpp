@@ -37,6 +37,7 @@
 #include "openmm/reference/ReferencePlatform.h"
 #include <cmath>
 #include <vector>
+#include <iostream>
 
 using namespace GriddedExternalForcePlugin;
 using namespace OpenMM;
@@ -52,17 +53,28 @@ static vector<Vec3>& extractForces(ContextImpl& context) {
     return *((vector<Vec3>*) data->forces);
 }
 
+
+// C++ modulo is weird, just make our own
+int mod(int k, int n) {
+    return ((k %= n) < 0) ? k+n : k;
+}
+
+
 void ReferenceCalcGriddedExternalForceKernel::initialize(const System& system, const GriddedExternalForce& force) {    
     force.getParameters(xsize, ysize, zsize, xmin, xmax, ymin, ymax, zmin, zmax, maxforce);
     force.getParticles(particles);
 
     this->griddedforce = force.usesGriddedForce();
     force.getGridPointers(ptrpotential, ptrforcex, ptrforcey, ptrforcez);
+    force.getPeriodicParameters(periodicx, periodicy, periodicz);
 
+    xlen = (xmax - xmin);
+    ylen = (ymax - ymin);
+    zlen = (zmax - zmin);
 
-    dx = (xmax - xmin) / (xsize-1);
-    dy = (ymax - ymin) / (ysize-1);
-    dz = (zmax - zmin) / (zsize-1);
+    dx = xlen / (xsize-1);
+    dy = ylen / (ysize-1);
+    dz = zlen / (zsize-1);
 }
 
 double ReferenceCalcGriddedExternalForceKernel::execute(ContextImpl& context, bool includeForces, bool includeEnergy) {
@@ -74,21 +86,37 @@ double ReferenceCalcGriddedExternalForceKernel::execute(ContextImpl& context, bo
     // Compute the interactions.
     int i, j, k;
     double ic, jc, kc, ic0, jc0, kc0, Fx, Fy, Fz, V;
+    double posx, posy, posz;
     for (int index = 0; index < numParticles; index++) {
         int particle = particles[index];
+        
+        posx = pos[particle][0];
+        posy = pos[particle][1];
+        posz = pos[particle][2];
 
-        ic = (pos[particle][0] - xmin) / dx;
-        jc = (pos[particle][1] - ymin) / dy;
-        kc = (pos[particle][2] - zmin) / dz;
+        ic = (posx - xmin) / dx;
+        jc = (posy - ymin) / dy;
+        kc = (posz - zmin) / dz;
 
-        i = ic + 0.5;
-        j = jc + 0.5;
-        k = kc + 0.5;
+        i = round(ic);
+        j = round(jc);
+        k = round(kc);
+        
+        // std::cout << posz << ", " << posy << ", " << posz << std::endl;
 
         // ensure index is within the boundary-1
-        i = max(1, min(xsize-2, i));
-        j = max(1, min(ysize-2, j));
-        k = max(1, min(zsize-2, k));
+        if ((i < 1 || i > xsize-2) && !periodicx){
+            std::cout << i << std::endl;
+            throw OpenMMException("GriddedExternalForce: x position out of grid bounds.");
+        }
+        if ((j < 1 || j > ysize-2) && !periodicy){
+            std::cout << j << std::endl;
+            throw OpenMMException("GriddedExternalForce: y position out of grid bounds.");
+        }
+        if ((k < 1 || k > zsize-2) && !periodicz) {
+            std::cout << k << std::endl;
+            throw OpenMMException("GriddedExternalForce: z position out of grid bounds.");
+        }
 
         ic0 = ic-i;
         jc0 = jc-j;
@@ -118,18 +146,49 @@ double ReferenceCalcGriddedExternalForceKernel::execute(ContextImpl& context, bo
 }
 
 void ReferenceCalcGriddedExternalForceKernel::taylorInterpolation(const vector<double>& data, int i, int j, int k, double dxi, double dyj, double dzk, double& w) {
-
+    
     // https://en.wikipedia.org/wiki/Finite_difference#Multivariate_finite_differences
 
     double dVdi0, dVdj0, dVdk0, d2Vdi20, d2Vdj20, d2Vdk20, d2Vdidj0, d2Vdidk0, d2Vdjdk0, Di, Dj, Dk;
+    int ip1, im1, jp1, jm1, kp1, km1;
+
+    if (periodicx) {
+        ip1 = mod(i + 1, xsize - 1);
+        im1 = mod(i - 1, xsize - 1);
+        i = mod(i, xsize - 1);
+    }
+    else {  
+        ip1 = (i + 1);
+        im1 = (i - 1);
+    }
+
+    if (periodicy) {
+        jp1 = mod(j + 1, ysize - 1);
+        jm1 = mod(j - 1, ysize - 1);
+        j = mod(j, ysize - 1);
+    }
+    else {  
+        jp1 = (j + 1);
+        jm1 = (j - 1);
+    }
+
+    if (periodicz) {
+        kp1 = mod(k + 1, zsize - 1);
+        km1 = mod(k - 1, zsize - 1);
+        k = mod(k, zsize - 1);
+    }
+    else {  
+        kp1 = (k + 1);
+        km1 = (k - 1);
+    }
 
     double wijk = data[k+zsize*(j+ysize*i)];
-    double wip1 = data[k+zsize*(j+ysize*(i+1))];
-    double wim1 = data[k+zsize*(j+ysize*(i-1))];
-    double wjp1 = data[k+zsize*((j+1)+ysize*i)];
-    double wjm1 = data[k+zsize*((j-1)+ysize*i)];
-    double wkp1 = data[(k+1)+zsize*(j+ysize*i)];
-    double wkm1 = data[(k-1)+zsize*(j+ysize*i)];
+    double wip1 = data[k+zsize*(j+ysize*ip1)];
+    double wim1 = data[k+zsize*(j+ysize*im1)];
+    double wjp1 = data[k+zsize*(jp1+ysize*i)];
+    double wjm1 = data[k+zsize*(jm1+ysize*i)];
+    double wkp1 = data[kp1+zsize*(j+ysize*i)];
+    double wkm1 = data[km1+zsize*(j+ysize*i)];
 
     dVdi0 = (wip1 - wim1) / (2);
     dVdj0 = (wjp1 - wjm1) / (2);
@@ -139,9 +198,9 @@ void ReferenceCalcGriddedExternalForceKernel::taylorInterpolation(const vector<d
     d2Vdj20 = (wjp1 - 2*wijk + wjm1);
     d2Vdk20 = (wkp1 - 2*wijk + wkm1);
     
-    d2Vdidj0 = (data[k+zsize*((j+1)+ysize*(i+1))] - data[k+zsize*((j-1)+ysize*(i+1))] - data[k+zsize*((j+1)+ysize*(i-1))] + data[k+zsize*((j-1)+ysize*(i-1))])/(4);
-    d2Vdidk0 = (data[(k+1)+zsize*(j+ysize*(i+1))] - data[(k-1)+zsize*(j+ysize*(i+1))] - data[(k+1)+zsize*(j+ysize*(i-1))] + data[(k-1)+zsize*(j+ysize*(i-1))])/(4);
-    d2Vdjdk0 = (data[(k+1)+zsize*((j+1)+ysize*i)] - data[(k+1)+zsize*((j-1)+ysize*i)] - data[(k-1)+zsize*((j+1)+ysize*i)] + data[(k-1)+zsize*((j-1)+ysize*i)])/(4);
+    d2Vdidj0 = (data[k+zsize*(jp1+ysize*ip1)] - data[k+zsize*(jm1+ysize*ip1)] - data[k+zsize*(jp1+ysize*im1)] + data[k+zsize*(jm1+ysize*im1)])/(4);
+    d2Vdidk0 = (data[kp1+zsize*(j+ysize*ip1)] - data[km1+zsize*(j+ysize*ip1)] - data[kp1+zsize*(j+ysize*im1)] + data[km1+zsize*(j+ysize*im1)])/(4);
+    d2Vdjdk0 = (data[kp1+zsize*(jp1+ysize*i)] - data[kp1+zsize*(jm1+ysize*i)] - data[km1+zsize*(jp1+ysize*i)] + data[km1+zsize*(jm1+ysize*i)])/(4);
 
     Di = dxi*d2Vdi20  + dyj*d2Vdidj0 + dzk*d2Vdidk0;
     Dj = dxi*d2Vdidj0 + dyj*d2Vdj20  + dzk*d2Vdjdk0;
@@ -152,18 +211,48 @@ void ReferenceCalcGriddedExternalForceKernel::taylorInterpolation(const vector<d
 
 
 void ReferenceCalcGriddedExternalForceKernel::taylorInterpolationDerivative(int i, int j, int k, double dxi, double dyj, double dzk, double& Fx, double& Fy, double& Fz, double& Vxyz) {
-
     // https://en.wikipedia.org/wiki/Finite_difference#Multivariate_finite_differences
 
     double dVdi0, dVdj0, dVdk0, d2Vdi20, d2Vdj20, d2Vdk20, d2Vdidj0, d2Vdidk0, d2Vdjdk0, Di, Dj, Dk;
+    int ip1, im1, jp1, jm1, kp1, km1;
+
+    if (periodicx) {
+        ip1 = mod(i + 1, xsize - 1);
+        im1 = mod(i - 1, xsize - 1);
+        i = mod(i, xsize - 1);
+    }
+    else {  
+        ip1 = (i + 1);
+        im1 = (i - 1);
+    }
+
+    if (periodicy) {
+        jp1 = mod(j + 1, ysize - 1);
+        jm1 = mod(j - 1, ysize - 1);
+        j = mod(j, ysize - 1);
+    }
+    else {  
+        jp1 = (j + 1);
+        jm1 = (j - 1);
+    }
+
+    if (periodicz) {
+        kp1 = mod(k + 1, zsize - 1);
+        km1 = mod(k - 1, zsize - 1);
+        k = mod(k, zsize - 1);
+    }
+    else {  
+        kp1 = (k + 1);
+        km1 = (k - 1);
+    }
 
     double Vijk = (*ptrpotential)[k+zsize*(j+ysize*i)];
-    double Vip1 = (*ptrpotential)[k+zsize*(j+ysize*(i+1))];
-    double Vim1 = (*ptrpotential)[k+zsize*(j+ysize*(i-1))];
-    double Vjp1 = (*ptrpotential)[k+zsize*((j+1)+ysize*i)];
-    double Vjm1 = (*ptrpotential)[k+zsize*((j-1)+ysize*i)];
-    double Vkp1 = (*ptrpotential)[(k+1)+zsize*(j+ysize*i)];
-    double Vkm1 = (*ptrpotential)[(k-1)+zsize*(j+ysize*i)];
+    double Vip1 = (*ptrpotential)[k+zsize*(j+ysize*ip1)];
+    double Vim1 = (*ptrpotential)[k+zsize*(j+ysize*im1)];
+    double Vjp1 = (*ptrpotential)[k+zsize*(jp1+ysize*i)];
+    double Vjm1 = (*ptrpotential)[k+zsize*(jm1+ysize*i)];
+    double Vkp1 = (*ptrpotential)[kp1+zsize*(j+ysize*i)];
+    double Vkm1 = (*ptrpotential)[km1+zsize*(j+ysize*i)];
 
     dVdi0 = (Vip1 - Vim1) / (2);
     dVdj0 = (Vjp1 - Vjm1) / (2);
@@ -173,9 +262,9 @@ void ReferenceCalcGriddedExternalForceKernel::taylorInterpolationDerivative(int 
     d2Vdj20 = (Vjp1 - 2*Vijk + Vjm1);
     d2Vdk20 = (Vkp1 - 2*Vijk + Vkm1);
     
-    d2Vdidj0 = ((*ptrpotential)[k+zsize*((j+1)+ysize*(i+1))] - (*ptrpotential)[k+zsize*((j-1)+ysize*(i+1))] - (*ptrpotential)[k+zsize*((j+1)+ysize*(i-1))] + (*ptrpotential)[k+zsize*((j-1)+ysize*(i-1))])/(4);
-    d2Vdidk0 = ((*ptrpotential)[(k+1)+zsize*(j+ysize*(i+1))] - (*ptrpotential)[(k-1)+zsize*(j+ysize*(i+1))] - (*ptrpotential)[(k+1)+zsize*(j+ysize*(i-1))] + (*ptrpotential)[(k-1)+zsize*(j+ysize*(i-1))])/(4);
-    d2Vdjdk0 = ((*ptrpotential)[(k+1)+zsize*((j+1)+ysize*i)] - (*ptrpotential)[(k+1)+zsize*((j-1)+ysize*i)] - (*ptrpotential)[(k-1)+zsize*((j+1)+ysize*i)] + (*ptrpotential)[(k-1)+zsize*((j-1)+ysize*i)])/(4);
+    d2Vdidj0 = ((*ptrpotential)[k+zsize*(jp1+ysize*ip1)] - (*ptrpotential)[k+zsize*(jm1+ysize*ip1)] - (*ptrpotential)[k+zsize*(jp1+ysize*im1)] + (*ptrpotential)[k+zsize*(jm1+ysize*im1)])/(4);
+    d2Vdidk0 = ((*ptrpotential)[kp1+zsize*(j+ysize*ip1)] - (*ptrpotential)[km1+zsize*(j+ysize*ip1)] - (*ptrpotential)[kp1+zsize*(j+ysize*im1)] + (*ptrpotential)[km1+zsize*(j+ysize*im1)])/(4);
+    d2Vdjdk0 = ((*ptrpotential)[kp1+zsize*(jp1+ysize*i)] - (*ptrpotential)[kp1+zsize*(jm1+ysize*i)] - (*ptrpotential)[km1+zsize*(jp1+ysize*i)] + (*ptrpotential)[km1+zsize*(jm1+ysize*i)])/(4);
 
     Di = dxi*d2Vdi20  + dyj*d2Vdidj0 + dzk*d2Vdidk0;
     Dj = dxi*d2Vdidj0 + dyj*d2Vdj20  + dzk*d2Vdjdk0;

@@ -1,4 +1,4 @@
-/* -------------------------------------------------------------------------- *
+ /* -------------------------------------------------------------------------- *
  *                                   OpenMM                                   *
  * -------------------------------------------------------------------------- *
  * This is part of the OpenMM molecular simulation toolkit originating from   *
@@ -46,9 +46,19 @@ const int GRDFILEVERSION = 1;
 
 GriddedExternalForce::GriddedExternalForce(int xsize, int ysize, int zsize, const vector<double>& potential, double xmin, double xmax, double ymin, double ymax, double zmin, double zmax, double maxforce) {
     setParameters(xsize, ysize, zsize, potential, xmin, xmax, ymin, ymax, zmin, zmax, maxforce);
+    griddedforcex = false;
+    griddedforcey = false;
+    griddedforcez = false;
+    periodicx = false;
+    periodicy = false;
+    periodicz = false;
 }
 
 GriddedExternalForce::GriddedExternalForce(std::string filepath, std::string name, double maxforce, bool verbose) {
+    periodicx = false;
+    periodicy = false;
+    periodicz = false;    
+
     //open file
     std::ifstream file(filepath, std::ios::binary);
 	
@@ -82,7 +92,6 @@ GriddedExternalForce::GriddedExternalForce(std::string filepath, std::string nam
     uint8_t typeNumber_uint8, gridSetNumber_uint8;
     uint32_t Nx_uint32, Ny_uint32, Nz_uint32, nameLength_uint32;
     uint64_t position_uint64;
-    
 
     for (int index = 0; index < nGridSets; index++) {
         
@@ -220,6 +229,11 @@ GriddedExternalForce::GriddedExternalForce(std::string filepath, std::string nam
             setForceyGrid(Fy_in);
             setForcezGrid(Fz_in);
         }
+        else {
+            griddedforcex = false;
+            griddedforcey = false;
+            griddedforcez = false;
+        }
     }
     else {
         throw OpenMMException("Only doubles (float64) are currently supported.");
@@ -238,9 +252,6 @@ void GriddedExternalForce::setParameters(int xsize, int ysize, int zsize, const 
     if (zmax <= zmin)
         throw OpenMMException("GriddedExternalForce: zmax <= zmin.");
     
-    this->griddedforcex = false;
-    this->griddedforcey = false;
-    this->griddedforcez = false;
     this->potential = potential;
     this->xsize = xsize;
     this->ysize = ysize;
@@ -290,6 +301,37 @@ void GriddedExternalForce::setForcezGrid(const std::vector<double>& forcez) {
     this->griddedforcez = true;
     this->forcez = forcez;
 }
+
+void GriddedExternalForce::setPeriodicX(bool value) {
+    this->periodicx = value;
+}
+
+void GriddedExternalForce::setPeriodicY(bool value) {
+    this->periodicy = value;
+}
+
+void GriddedExternalForce::setPeriodicZ(bool value) {
+    this->periodicz = value;
+}
+
+bool GriddedExternalForce::getPeriodicX() const {
+    return this->periodicx;
+}
+
+bool GriddedExternalForce::getPeriodicY() const {
+    return this->periodicy;
+}
+
+bool GriddedExternalForce::getPeriodicZ() const {
+    return this->periodicz;
+}
+
+void GriddedExternalForce::getPeriodicParameters(bool& periodicx, bool& periodicy, bool& periodicz) const {
+    periodicx = this->periodicx;
+    periodicy = this->periodicy;
+    periodicz = this->periodicz;
+}
+
 
 void GriddedExternalForce::getGridPointers(const std::vector<double>*& ptrpotential, const std::vector<double>*& ptrforcex, const std::vector<double>*& ptrforcey, const std::vector<double>*& ptrforcez) const {
     ptrpotential = &(this->potential);

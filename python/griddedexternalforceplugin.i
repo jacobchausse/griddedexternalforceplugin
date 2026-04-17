@@ -153,6 +153,30 @@ Parameters
 forcez : np.ndarray
     Flattened grid for the force in z (kJ/mol/nm).";
 
+%feature("docstring") GriddedExternalForce::setPeriodicX "Set whether the grid is periodic in the x direction.
+This assume the first and last elements of the grid in the x axis are equivalent.
+
+Parameters
+----------
+value : bool
+    If True, the x direction is periodic.";
+
+%feature("docstring") GriddedExternalForce::setPeriodicY "Set whether the grid is periodic in the y direction.
+This assume the first and last elements of the grid in the y axis are equivalent.
+
+Parameters
+----------
+value : bool
+    If True, the y direction is periodic.";
+
+%feature("docstring") GriddedExternalForce::setPeriodicZ "Set whether the grid is periodic in the z direction.
+This assume the first and last elements of the grid in the z axis are equivalent.
+
+Parameters
+----------
+value : bool
+    If True, the z direction is periodic.";
+
 %feature("docstring") GriddedExternalForce::usesGriddedForce "Whether force grids are being used/have been set.
 
 Returns
@@ -184,7 +208,19 @@ public:
 
     void GriddedExternalForce::setForcezGrid(const std::vector<double>& forcez);
 
+    void GriddedExternalForce::setPeriodicX(bool value);
+
+    void GriddedExternalForce::setPeriodicY(bool value);
+
+    void GriddedExternalForce::setPeriodicZ(bool value);
+    
     bool GriddedExternalForce::usesGriddedForce() const;
+
+    bool GriddedExternalForce::getPeriodicX() const;
+
+    bool GriddedExternalForce::getPeriodicY() const;
+
+    bool GriddedExternalForce::getPeriodicZ() const;
 
     /*
      * The reference parameters to this function are output values.
